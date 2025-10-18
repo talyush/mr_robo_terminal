@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>~ mr_robot_terminal ~</title>
+<style>
+:root{
+  --bg:#071015;
+  --panel:#0b1114;
+  --term-bg:#020405;
+  --green:#00ff66;
+  --muted:#9aa6a6;
+  --accent:#ff3b30;
+  --glass: rgba(255,255,255,0.03);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+}
+[data-theme="green"]{
+  --term-bg:#02160a;
+  --panel: linear-gradient(180deg, rgba(0,255,102,0.02), transparent);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0,255,102,0.02), transparent 10%),
+    linear-gradient(180deg,#071015 0%, #05080a 100%);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  color:var(--muted);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  padding:18px;
+}
+
+.app{display:grid;grid-template-columns:220px 1fr 300px;gap:18px;height:calc(100vh - 36px)}
+.menu{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(2,6,8,0.6);display:flex;flex-direction:column;gap:8px}
+.brand{font-family:var(--mono);color:var(--green);letter-spacing:2px;font-size:13px;margin-bottom:6px}
+.menu button{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:9px 10px;width:100%;text-align:left;border-radius:10px;cursor:pointer;font-weight:600}
+.menu button.active{background: linear-gradient(90deg, rgba(0,255,102,0.04), rgba(255,59,48,0.01));color:var(--green);border:1px solid rgba(0,255,102,0.12)}
+.menu .hint{font-size:12px;color:rgba(154,166,166,0.6);margin-top:auto}
+
+.terminal-card{background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(255,255,255,0.01));border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden}
+.term-window{background:var(--term-bg);border-radius:8px;padding:14px;min-height:420px;color:var(--green);font-family:var(--mono);font-size:13px;overflow:auto;white-space:pre-wrap;line-height:1.4;border:1px solid rgba(255,255,255,0.02);position:relative;z-index:1}
+.term-window .glitch{display:inline-block;animation:glitchAnim 0.35s linear infinite}
+@keyframes glitchAnim{
+  0%{transform:translate(0,0)}
+  20%{transform:translate(-1px,1px)}
+  40%{transform:translate(1px,-1px)}
+  60%{transform:translate(-1px,1px)}
+  80%{transform:translate(1px,0)}
+  100%{transform:translate(0,0)}
+}
+.controls{display:flex;gap:8px;align-items:center}
+.control-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);cursor:pointer;font-weight:600;color:var(--muted)}
+.input-row{display:flex;gap:8px;margin-top:6px;align-items:center}
+input.cmd{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.03);padding:10px 12px;border-radius:8px;color:var(--muted);font-family:var(--mono);outline:none}
+.run-btn{padding:10px 12px;border-radius:8px;border:none;background:var(--green);color:#001a00;font-weight:700;cursor:pointer}
+
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:10px}
+.persona{font-family:var(--mono);color:var(--green);font-size:14px}
+.messages{font-size:13px;color:var(--muted);line-height:1.45}
+.alert{color:var(--accent);font-weight:700}
+.copy-btn{padding:8px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-weight:600}
+.footer-note{font-size:12px;color:rgba(154,166,166,0.6)}
+.small{font-size:12px;color:rgba(154,166,166,0.8)}
+.theme-toggle{margin-left:auto;padding:6px 8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.term-window::-webkit-scrollbar{height:8px;width:8px}
+.term-window::-webkit-scrollbar-thumb{background: rgba(255,255,255,0.03);border-radius:8px}
+@media (max-width:980px){.app{grid-template-columns: 1fr;grid-auto-rows:min-content}.panel{order:3}.menu{order:1}.terminal-card{order:2}}
+.prompt{color:var(--muted)}
+.ascii{color:var(--muted)}
+.commands-list{font-size:12px;color:rgba(154,166,166,0.6);border-top:1px solid rgba(255,255,255,0.03);padding-top:6px}
+.matrix-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.12}
+.flash {
+  position:absolute; inset:0; z-index:2; pointer-events:none;
+  background: rgba(0,255,102,0.08); opacity:0; transition:opacity .12s linear;
+}
+.flash.on { opacity:1; transition:opacity .08s linear; }
+</style>
+</head>
+<body data-theme="">
+<div class="app" role="application" aria-label="Mr Robot terminal prototype">
+  <aside class="menu" aria-label="menu">
+    <div class="brand">~ mr_robot_terminal ~</div>
+    <button data-action="scan" class="active">Scan</button>
+    <button data-action="recon">Recon</button>
+    <button data-action="exploit">Exploit (demo)</button>
+    <button data-action="notes">Notebook</button>
+    <button data-action="persona">Persona</button>
+    <div class="hint">Tip: komut satırına yazıp Enter'a bas. Tab ile otomatik tamamlama.</div>
+  </aside>
+
+  <section class="terminal-card">
+    <canvas class="matrix-canvas" id="matrixCanvas"></canvas>
+    <div class="flash" id="flashOverlay" aria-hidden="true"></div>
+
+    <div class="controls">
+      <div class="control-btn" id="clearBtn">Clear</div>
+      <div class="control-btn" id="screenshotBtn">Screenshot</div>
+      <button class="theme-toggle" id="themeToggle">Theme: Dark</button>
+      <div style="flex:1"></div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--muted)">Demo — outputs simulated</div>
+    </div>
+
+    <div id="term" class="term-window" tabindex="0" aria-live="polite">
+Welcome to Terminal Persona (simulated)
+Type 'scan target.com' or try 'story start'.
+    </div>
+
+    <div class="input-row" role="search">
+      <input id="cmdInput" class="cmd" placeholder="ör. scan target.com" aria-label="komut satırı" autocomplete="off">
+      <button id="runBtn" class="run-btn">RUN</button>
+    </div>
+  </section>
+
+  <aside class="panel" aria-label="persona panel">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="persona">Elliot Persona</div>
+      <div class="small">interactive</div>
+    </div>
+
+    <div class="messages" id="personaMessages">
+      "Bazı kapılar gizli kalmalı." — bir not.<br><br>
+      <span class="alert">UYARI:</span> Tüm çıktılar simülasyondur — gerçek tarama/istismar yapmayın.
+    </div>
+
+    <div class="commands-list" id="commandsList">
+      Commands: scan, recon, exploit, notes, persona, story start/next/restart, shell (whoami, pwd, ls, cat &lt;file&gt;, exit), theme toggle, help, fsociety
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="copy-btn" id="copyOutput">Copy Output</button>
+      <button class="copy-btn" id="exportBtn">Export (TXT)</button>
+    </div>
+
+    <div class="footer-note">Portfolio-ready: add "simulation" label when publishing.</div>
+  </aside>
+</div>
+
+<script>
+// ---------- Matrix background ----------
+const canvas = document.getElementById('matrixCanvas');
+const ctx = canvas.getContext('2d');
+function setCanvasSize(){ canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; initMatrix(); }
+window.addEventListener('resize', setCanvasSize);
+
+let letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()*&^%';
+let fontSize = 14;
+let columns = 0;
+let drops = [];
+function initMatrix(){ fontSize = 14; columns = Math.floor(canvas.width / fontSize); drops = []; for(let x=0;x<columns;x++) drops[x] = Math.random()*canvas.height; }
+setCanvasSize();
+
+function drawMatrix(){
+  if(!ctx) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#0F0';
+  ctx.font = fontSize + "px monospace";
+  for(let i=0;i<drops.length;i++){
+    const text = letters.charAt(Math.floor(Math.random()*letters.length));
+    ctx.fillText(text, i*fontSize, drops[i]);
+    if(drops[i] > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    drops[i] += fontSize;
+  }
+  requestAnimationFrame(drawMatrix);
+}
+requestAnimationFrame(drawMatrix);
+
+// ---------- Persona & Story & Commands ----------
+const personaQuotes = [
+  "Bazı bilgilerin göremediğin tarafları vardır. Bazen durup izlemek gerekir.",
+  "Her kazanım bir bedel ister. Notlarını tut.",
+  "Sessizlik bazen en güçlü silahtır.",
+  "Hatalarından ders al, yoksa onlar seni tekrar bulur.",
+  "Gözlemle, bekle, sonra müdahale et.",
+  "İzlemek ve beklemek, çoğu zaman doğru hamledir.",
+  "Sadece görebildiklerinle yetinme, arka planı da düşün.",
+  "Bir adım geri çekilmek bazen en ileri hamledir."
+];
+
+const outputs = {
+  scan: `Starting Nmap 7.80 ( https://nmap.org ) at ${new Date().toLocaleString()}
+Nmap scan report for target.example.com (192.0.2.10)
+Host is up (0.020s latency).
+PORT     STATE  SERVICE
+22/tcp   open   ssh
+80/tcp   open   http
+8080/tcp open   http-proxy
+Service Info: OS: Linux
+--- end of scan ---`,
+  recon: `Gobuster v3.0.1
+=================================================
+/admin (Status: 301)
+/backup (Status: 200)
+/.secret (Status: 403)
+/.git (Status: 403)
+--- directories enumerated (simulated) ---`,
+  exploit: `Exploit: CVE-XXXX-YYYY - demo
+Payload delivered. Simulated shell session opened.
+> id
+uid=1000(simulated) gid=1000(simulated) groups=1000(simulated)
+Note: This is a DEMO output for educational prototyping only.`,
+  notes: `[Notebook]
+- 2025-10-18: Simulated scan shows SSH + HTTP.
+- Action items: document reconnaissance steps, keep outputs simulated for portfolio.
+- Idea: add small "story" mode where persona gives hints.`
+};
+
+const story = [
+  { art:
+`  ________  _________  ____  ____  _____  _____  _____ 
+ /  ____  |/  ____  |/ ___|/ ___|/ ____|/ ____|/ ____|
+|  |    |  |  |    | | |    | |    | (___ | |    | (___ 
+|  |    |  |  |    | | |    | |     \\___ \\| |     \\___ \\
+|  |____|  |  |____| | |___ | |___  ____) | |____ ____) |
+ \\________/ \\_______|\\____|\\_____|\\_____|\\_____|\\_____/`,
+    text:`--- STORY 01 ---
+Gecenin üçü. Şehir susmuş. Bir IP adresi var elimizde: 192.0.2.10
+Elliot: "İlk olarak bak, ama gürültü çıkarma."`
+  },
+  { art:
+`  ____   _____ _   _ 
+ / ___| |_   _| \\ | |
+| |       | | |  \\| |
+| |___    | | | |\\  |
+ \\____|   |_| |_| \\_|`,
+    text:`--- STORY 02 ---
+Recon tamam: gizli dizinler, bir admin paneli 301 yönlendirmesi.
+Elliot: "Bazı kapılar kilitliyse, anahtarı arama."`
+  },
+  { art:
+`  _____ ____  _     
+ | ____|  _ \\| |    
+ |  _| | |_) | |    
+ | |___|  _ <| |___ 
+ |_____|_| \\_\\_____|`,
+    text:`--- STORY 03 ---
+Exploit denemesi simüle edildi; shell açıldı ama izin yok.
+Elliot: "Her kazanım bir bedel ister. Notlarını tut."`
+  },
+  { art:
+`  _____ _   _ ____  
+ | ____| \\ | |  _ \\ 
+ |  _| |  \\| | | | |
+ | |___| |\\  | |_| |
+ |_____|_| \\_|____/ `,
+    text:`--- STORY END ---
+Hikaye tamamlandı. Restart için 'story restart' yaz.`
+  }
+];
+
+const commandList = [
+  'scan','scan --fast','scan -f','recon','gobuster','exploit','notes','notebook','persona',
+  'story start','story next','story restart','help','theme toggle','shell','whoami','pwd','ls','cat secret.txt','exit','fsociety'
+];
+
+// ---------- Elements ----------
+const term = document.getElementById('term');
+const cmdInput = document.getElementById('cmdInput');
+const runBtn = document.getElementById('runBtn');
+const menuBtns = document.querySelectorAll('.menu button[data-action]');
+const clearBtn = document.getElementById('clearBtn');
+const screenshotBtn = document.getElementById('screenshotBtn');
+const copyOutput = document.getElementById('copyOutput');
+const exportBtn = document.getElementById('exportBtn');
+const personaMessages = document.getElementById('personaMessages');
+const themeToggle = document.getElementById('themeToggle');
+const flashOverlay = document.getElementById('flashOverlay');
+
+let history = [], historyIndex = -1, storyIndex = 0, shellMode = false, shellPrompt = 'sim@target:~$';
+let typingSpeedMin = 12, typingSpeedMax = 30;
+
+// ---------- Helpers ----------
+function appendRaw(text){
+  term.textContent = term.textContent.trimEnd() + "\n\n" + text;
+  term.scrollTop = term.scrollHeight;
+}
+
+async function typeAndAppend(text){
+  // type with per-char randomness and occasional glitch spans
+  for(const ch of text){
+    if(Math.random() < 0.04 && ch.trim() !== ''){
+      term.innerHTML += `<span class="glitch">${ch}</span>`;
+    } else {
+      term.innerHTML += ch;
+    }
+    term.scrollTop = term.scrollHeight;
+    await new Promise(r => setTimeout(r, typingSpeedMin + Math.random()*(typingSpeedMax - typingSpeedMin)));
+  }
+  term.innerHTML += '\n';
+  term.scrollTop = term.scrollHeight;
+}
+
+async function appendAndType(text){
+  term.innerHTML += '\n';
+  await typeAndAppend(text);
+}
+
+// Autocomplete (Tab)
+function autocompleteInput(){
+  const cur = cmdInput.value;
+  const trimmed = cur.trim();
+  if(trimmed === '') return;
+  const match = commandList.find(c => c.startsWith(trimmed));
+  if(match) cmdInput.value = match + (match.endsWith(' ') ? '' : '');
+}
+
+// Menu clicks
+menuBtns.forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    menuBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const action = btn.dataset.action;
+    if(action === 'persona'){ showPersonaQuote(); }
+    else { await appendAndType(outputs[action] || 'No output.'); }
+  });
+});
+
+// Run command
+runBtn.addEventListener('click', runCmd);
+cmdInput.addEventListener('keydown', async (e)=>{
+  if(e.key === 'Tab'){ e.preventDefault(); autocompleteInput(); return; }
+  if(e.key === 'Enter'){ runCmd(); }
+  else if(e.key === 'ArrowUp'){
+    if(history.length === 0) return;
+    historyIndex = Math.max(0, historyIndex === -1 ? history.length - 1 : historyIndex - 1);
+    cmdInput.value = history[historyIndex] || '';
+    e.preventDefault();
+  } else if(e.key === 'ArrowDown'){
+    if(history.length === 0) return;
+    historyIndex = Math.min(history.length, historyIndex + 1);
+    cmdInput.value = historyIndex === history.length ? '' : history[historyIndex] || '';
+    e.preventDefault();
+  }
+});
+
+async function runCmd(){
+  const raw = cmdInput.value.trim();
+  if(!raw){
+    await appendAndType("Available commands:\n" + commandList.join(', '));
+    return;
+  }
+  history.push(raw);
+  historyIndex = history.length;
+
+  if(shellMode){
+    appendRaw(`${shellPrompt} ${raw}`);
+    await handleShellCommand(raw);
+    cmdInput.value = '';
+    return;
+  }
+
+  appendRaw(`> ${raw}`);
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const rest = parts.slice(1).join(' ');
+
+  if(cmd === 'scan'){
+    if(parts.includes('--fast') || parts.includes('-f')) await appendAndType('[fast scan simulated]\n' + outputs.scan);
+    else await appendAndType(outputs.scan);
+  } else if(cmd === 'recon' || cmd === 'gobuster'){
+    await appendAndType(outputs.recon);
+  } else if(cmd === 'exploit'){
+    await appendAndType(outputs.exploit);
+  } else if(cmd === 'notes' || cmd === 'notebook'){
+    await appendAndType(outputs.notes);
+  } else if(cmd === 'help'){
+    await appendAndType("Available commands:\n" + commandList.join(', '));
+  } else if(cmd === 'persona'){
+    showPersonaQuote();
+  } else if(cmd === 'story'){
+    if(rest === 'start'){ storyIndex = 0; await showStory(); }
+    else if(rest === 'next'){ storyIndex = Math.min(storyIndex + 1, story.length - 1); await showStory(); }
+    else if(rest === 'restart'){ storyIndex = 0; await showStory(); }
+    else await appendAndType("Story commands: story start | story next | story restart");
+  } else if(cmd === 'shell'){
+    shellMode = true;
+    appendRaw('[entered simulated shell — type "exit" to leave]');
+    term.textContent += `\n\n${shellPrompt} `;
+    term.scrollTop = term.scrollHeight;
+  } else if(cmd === 'theme'){
+    if(rest === 'toggle') toggleTheme();
+    else await appendAndType("Use: theme toggle");
+  } else if(cmd === 'fsociety'){
+    appendRaw('> fsociety (easter-egg)');
+    await appendAndType('[decrypting... simulated]\n');
+    await showFsocietyEaster();
+  } else {
+    await appendAndType("Unknown command (simulated). Type 'help'.");
+  }
+
+  cmdInput.value = '';
+}
+
+// ---------- Story & Persona ----------
+async function showStory(){
+  if(storyIndex < 0) storyIndex = 0;
+  if(storyIndex >= story.length) storyIndex = story.length - 1;
+  const s = story[storyIndex];
+  await appendAndType(s.art + '\n' + s.text);
+}
+
+function showPersonaQuote(){
+  const quote = personaQuotes[Math.floor(Math.random() * personaQuotes.length)];
+  personaMessages.innerHTML = `"Elliot: ${quote}"<br><br><span class="alert">Persona active</span>`;
+  appendRaw(`> persona: ${quote}`);
+}
+
+// ---------- Fake shell ----------
+async function handleShellCommand(raw){
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  if(cmd === 'exit'){
+    shellMode = false;
+    appendRaw('[exited simulated shell]');
+    return;
+  } else if(cmd === 'whoami'){
+    await appendAndType('simulated_user');
+  } else if(cmd === 'pwd'){
+    await appendAndType('/home/simulated_user');
+  } else if(cmd === 'ls'){
+    await appendAndType('README.txt\nsecret.txt\nnotes.log');
+  } else if(cmd === 'cat'){
+    const fn = parts[1] || '';
+    if(fn === 'secret.txt') await appendAndType('FLAG{simulated_flag_do_not_use}\n(Note: fake demo only.)');
+    else if(fn === 'README.txt') await appendAndType('This is a simulated shell for demo purposes.');
+    else await appendAndType(`cat: ${fn}: No such file or directory`);
+  } else if(cmd === 'help'){
+    await appendAndType('Simulated shell commands: whoami, pwd, ls, cat <file>, exit');
+  } else {
+    await appendAndType(`${cmd}: command not found (simulated)`);
+  }
+
+  if(shellMode){
+    term.textContent += `\n\n${shellPrompt} `;
+    term.scrollTop = term.scrollHeight;
+  }
+}
+
+// ---------- Buttons ----------
+document.getElementById('clearBtn').addEventListener('click', ()=>{ term.textContent = 'Terminal cleared (simulated).'; shellMode = false; });
+screenshotBtn.addEventListener('click', ()=>{ appendRaw('[screenshot simulated] — use OS screenshot for portfolio]'); });
+
+copyOutput.addEventListener('click', ()=>{
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(term.textContent).then(()=> {
+      personaMessages.innerHTML = 'Output copied to clipboard.';
+      setTimeout(()=> personaMessages.innerHTML = `"Bazı kapılar gizli kalmalı." — bir not.<br><br><span class="alert">UYARI:</span> Tüm çıktılar simülasyondur — gerçek tarama/istismar yapmayın.`, 1400);
+    }).catch(()=> {
+      personaMessages.innerHTML = 'Kopyalama başarısız — tarayıcı izinleri olabilir.';
+      setTimeout(()=> personaMessages.innerHTML = `"Bazı kapılar gizli kalmalı." — bir not.<br><br><span class="alert">UYARI:</span> Tüm çıktılar simülasyondur — gerçek tarama/istismar yapmayın.`, 1400);
+    });
+  } else alert('Clipboard API yok — manuel seçip kopyala.');
+});
+
+exportBtn.addEventListener('click', ()=>{
+  const blob = new Blob([term.textContent], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'terminal_simulation.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  personaMessages.innerHTML = 'Export hazır: terminal_simulation.txt';
+  setTimeout(()=> personaMessages.innerHTML = `"Bazı kapılar gizli kalmalı." — bir not.<br><br><span class="alert">UYARI:</span> Tüm çıktılar simülasyondur — gerçek tarama/istismar yapmayın.`, 1400);
+});
+
+// Theme toggle
+function toggleTheme(){ document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'green' ? '' : 'green'); themeToggle.textContent = document.body.getAttribute('data-theme') === 'green' ? 'Theme: Green' : 'Theme: Dark'; }
+themeToggle.addEventListener('click', toggleTheme);
+
+// ---------- FSOCIETY EASTER EGG (glitch + beep + flash) ----------
+const fsocietyArt = `
+FFFFFFFF   SSSSS   OOOOO   CCCCC  II  EEEEE  TTTTT  Y   Y
+F          S      O     O C       II  E        T    Y   Y
+FFFF        SSS   O     O C       II  EEEE     T     Y Y
+F              S  O     O C       II  E        T      Y
+F          SSSSS   OOOOO   CCCCC  II  EEEEE    T      Y
+                            
+       /\\_/\\
+      ( o.o )  - mask
+       > ^ <
+"Elliot: Sistemi değil, sistemi yaratanı hedeflersin."
+`;
+
+const beepAudioUrl = 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg';
+
+// show glitch+beep+flash then ascii
+async function showFsocietyEaster(){
+  const saved = personaMessages.innerHTML;
+  personaMessages.innerHTML = '<span class="alert">fsociety unlocked</span>';
+
+  // beep + flash + quick color toggle
+  const beep = new Audio(beepAudioUrl);
+  // try-catch play to avoid blocking on autoplay policies
+  try { beep.volume = 0.6; } catch(e){}
+  for(let i=0;i<3;i++){
+    flashOverlay.classList.add('on');
+    term.style.color = i % 2 === 0 ? '#ffffff' : '#00ff66';
+    try { beep.currentTime = 0; beep.play(); } catch(e) {}
+    await new Promise(r => setTimeout(r, 160));
+    flashOverlay.classList.remove('on');
+    term.style.color = '#00ff66';
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  personaMessages.innerHTML = saved;
+  await appendAndType(fsocietyArt + '\n');
+}
+
+// Konami-style key sequence (↑ ↑ ↓ ↓ ← → ← → B A Enter)
+const konami = [ 'ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a','Enter' ];
+let konamiPos = 0;
+window.addEventListener('keydown', (e)=>{
+  const key = e.key;
+  if(key.toLowerCase() === konami[konamiPos].toLowerCase()){
+    konamiPos++;
+    if(konamiPos === konami.length){
+      konamiPos = 0;
+      showFsocietyEaster();
+    }
+  } else konamiPos = 0;
+});
+
+// Also allow typing 'fsociety' (handled in runCmd)
+
+// Focus
+window.addEventListener('load', ()=>{ cmdInput.focus(); setCanvasSize(); });
+</script>
+</body>
+</html>
+
+
+
+
+
