@@ -1,11 +1,15 @@
-# mr_robot_terminal
 # ~ Mr Robot Terminal (Simulated) ~
 
 <p align="center">
   <em>Mr. Robot-style interactive terminal simulation — demo / portfolio-ready</em>
 </p>
 
-<!-- You can replace this with a real GIF or static screenshot -->
+<p align="center">
+  <a href="https://kendinefenoman.github.io/MrRobot-Terminal/" target="_blank">
+    <img src="https://img.shields.io/badge/Try%20It%20Online-black?style=for-the-badge&logo=github&logoColor=white" alt="Try it Online">
+  </a>
+</p>
+
 <p align="center">
   <img alt="Demo preview" src="assets/demo-preview.gif" width="720" />
 </p>
@@ -13,7 +17,8 @@
 ## Overview
 
 A lightweight, browser-based terminal simulation inspired by **Mr. Robot**.  
-Everything is a **simulation** — no real scanning, exploitation, or network activity. This project is ideal for portfolio demos, interactive slides, or playful UI experiments.
+Everything is a **simulation** — no real scanning, exploitation, or network activity.  
+Ideal for portfolio demos, interactive slides, or playful UI experiments.
 
 ## Features
 
@@ -30,12 +35,34 @@ Everything is a **simulation** — no real scanning, exploitation, or network ac
 
 > ⚠️ **Important:** This is a demo. Do **not** use these commands on real systems.
 
-## Live demo
+## Quick Usage
 
-- To preview locally, just open `index.html` in a modern browser.
-- For a nicer local experience (recommended), run a static server:
+- Try commands:
+  - `scan target.com` (simulated)
+  - `scan target.com --fast`
+  - `recon` or `gobuster`
+  - `exploit` (demo output)
+  - `notes` / `notebook`
+  - `persona` (random quote)
+  - `story start` → `story next`
+  - `shell` → then `whoami`, `ls`, `cat secret.txt`, `exit`
+  - `fsociety` or Konami code for easter-egg
+  - `help` to list commands
+  - `theme toggle` to switch themes
 
+## How to Run Locally
+
+### 1) Open directly in your browser
+- Double-click `index.html` or right-click → **Open with → Your Browser**.  
+- Works on Chrome, Edge, Firefox, Safari.  
+- ⚠️ Some features like audio autoplay or clipboard may require a local server.
+
+### 2) Use a local static server (recommended)
+
+**Python 3:**
 ```bash
-# python 3
 python -m http.server 8000
-# then open http://localhost:8000 in your browser
+# Open in browser: http://localhost:8000
+
+
+
