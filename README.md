@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://kendinefenoman.github.io/MrRobot-Terminal/" target="_blank">
+  <a href=""https://talyush.github.io/mr_robo_terminal/ target="_blank">
     <img src="https://img.shields.io/badge/Try%20It%20Online-black?style=for-the-badge&logo=github&logoColor=white" alt="Try it Online">
   </a>
 </p>
